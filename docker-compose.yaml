@@ -1,0 +1,37 @@
+services:
+  oracle-xe:
+    image: container-registry.oracle.com/database/express:21.3.0-xe
+    container_name: oracle-xe-db
+    volumes:
+      - oracle-data:/opt/oracle/oradata
+      - ./scripts:/scripts # This volume mount is still needed to get files into the container
+    ports:
+      - 1521:1521
+      - 5500:5500
+    environment:
+      - ORACLE_SID=XE
+      - ORACLE_PWD=password123 # Password for SYS/SYSTEM
+      - MEDTECHDBA=C##MEDTECHDBA
+      - MEDTECHDBA_PWD=medtechdba
+    command: |
+      bash -c "
+        /opt/oracle/runOracle.sh &
+
+        sleep 15 
+
+        # Run each of your scripts in sequence
+        sqlplus -S system/$$ORACLE_PWD@$$ORACLE_SID @/scripts/00_inituser.sql
+        sqlplus -S $$MEDTECHDBA/$$MEDTECHDBA_PWD@$$ORACLE_SID @/scripts/01_types.sql
+        sqlplus -S $$MEDTECHDBA/$$MEDTECHDBA_PWD@$$ORACLE_SID @/scripts/02_tables.sql
+        sqlplus -S $$MEDTECHDBA/$$MEDTECHDBA_PWD@$$ORACLE_SID @/scripts/03_indexes.sql
+        sqlplus -S $$MEDTECHDBA/$$MEDTECHDBA_PWD@$$ORACLE_SID @/scripts/04_triggers.sql
+        sqlplus -S $$MEDTECHDBA/$$MEDTECHDBA_PWD@$$ORACLE_SID @/scripts/05_views.sql
+        sqlplus -S $$MEDTECHDBA/$$MEDTECHDBA_PWD@$$ORACLE_SID @/scripts/06_populatedb.sql
+        sqlplus -S $$MEDTECHDBA/$$MEDTECHDBA_PWD@$$ORACLE_SID @/scripts/07_triggertests.sql
+
+        wait $$!
+      "
+
+volumes:
+  oracle-data:
+    driver: local

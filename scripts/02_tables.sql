@@ -6,15 +6,6 @@ CREATE TABLE Product OF Product_t
 );
 /
 
-CREATE TABLE ProductBatch OF ProdBatch_t
-(
-    BatchID PRIMARY KEY,
-    BatchProduct NOT NULL SCOPE IS Product,
-    Quantity NOT NULL,
-    ArrivalDate NOT NULL
-);
-/
-
 CREATE TABLE Department OF Department_t
 (
     DepartmentID PRIMARY KEY,
@@ -48,23 +39,33 @@ CREATE TABLE ChiefOfficier OF ChiefOfficier_t
 );
 /
 
+CREATE TABLE DistributionCenter OF DistCenter_t
+(
+    CenterName PRIMARY KEY,
+    CenterLocation NOT NULL
+)
+NESTED TABLE ListOfProducts STORE AS ListOfProductsNT;
+/
+
 CREATE TABLE LogisticTeam OF LogisticTeam_t
 (
     TeamCode PRIMARY KEY,
     TeamName NOT NULL,
     TeamChief NOT NULL SCOPE IS ChiefOfficier,
+    OfDistCenter NOT NULL SCOPE IS DistributionCenter,
     CompletedDeliveries DEFAULT 0 NOT NULL
 )
 NESTED TABLE TeamMembers STORE AS TeamMembersNT;
 /
 
-CREATE TABLE DistributionCenter OF DistCenter_t
+CREATE TABLE ProductBatch OF ProdBatch_t
 (
-    CenterName PRIMARY KEY,
-    ByTeam NOT NULL SCOPE IS LogisticTeam,
-    CenterLocation NOT NULL
-)
-NESTED TABLE ListOfProducts STORE AS ListOfProductsNT;
+    BatchID PRIMARY KEY,
+    BatchProduct NOT NULL SCOPE IS Product,
+    Quantity NOT NULL,
+    ArrivalDate NOT NULL,
+    ByDistCenter NOT NULL SCOPE IS DistributionCenter
+);
 /
 
 CREATE TABLE BatchOrder OF BatchOrder_t
@@ -72,9 +73,9 @@ CREATE TABLE BatchOrder OF BatchOrder_t
     OrderID PRIMARY KEY,
     OrderDate NOT NULL,
     ExpectedDeliveryDate NOT NULL,
-    DeliveryStatus NOT NULL,
+    DeliveryStatus DEFAULT 'Pending' NOT NULL,
     ByCustomer NOT NULL SCOPE IS Customer,
-    ByLogisticTeam NOT NULL SCOPE IS LogisticTeam,
+    ByLogisticTeam SCOPE IS LogisticTeam,
     CHECK (DeliveryStatus IN (
         'Pending', 'In Transit', 'Delivered', 'Cancelled', 'Problem'
     ))

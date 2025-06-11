@@ -51,14 +51,16 @@ END;
 /
 
 DECLARE
-    v_batch_id      NUMBER;
-    v_product_ref   REF Product_t; -- Using Product_t, assuming your type is named this way
-    v_product_serial VARCHAR2(10);
+    v_batch_id        NUMBER;
+    v_product_ref     REF Product_t;
+    v_product_serial  VARCHAR2(10);
+    v_center_name     DistributionCenter.CenterName%TYPE;
+    v_dist_center_ref REF DistCenter_t;
 BEGIN
     DBMS_OUTPUT.PUT_LINE('--- Populating ProductBatch Table ---');
 
     FOR i IN 1..200 LOOP -- Insert 200 sample product batches
-        v_batch_id := product_batch_id_seq.NEXTVAL; -- Get the next ID from the sequence
+        v_batch_id := product_batch_id_seq.NEXTVAL;
 
         -- Randomly select an existing product's SerialNo
         SELECT SerialNo INTO v_product_serial
@@ -71,12 +73,31 @@ BEGIN
         FROM Product p
         WHERE p.SerialNo = v_product_serial;
 
-        INSERT INTO ProductBatch (BatchID, BatchProduct, Quantity, ArrivalDate)
+        -- Randomly select a Distribution Center
+        SELECT CenterName INTO v_center_name
+        FROM DistributionCenter
+        ORDER BY DBMS_RANDOM.VALUE
+        FETCH FIRST 1 ROW ONLY;
+
+        -- Get the REF to that Distribution Center
+        SELECT REF(dc) INTO v_dist_center_ref
+        FROM DistributionCenter dc
+        WHERE dc.CenterName = v_center_name;
+
+        INSERT INTO ProductBatch (BatchID, BatchProduct, Quantity, ArrivalDate, ByDistCenter)
         VALUES (
             v_batch_id,
             v_product_ref,
-            DBMS_RANDOM.VALUE(10, 500), -- Random quantity between 10 and 500 units
-            SYSDATE - DBMS_RANDOM.VALUE(1, 365) -- Arrival date within the last year
+            ROUND(DBMS_RANDOM.VALUE(10, 500)), -- Random integer quantity between 10 and 500 units
+            SYSDATE - DBMS_RANDOM.VALUE(1, 365), -- Arrival date within the last year
+            -- Find a distribution center that has this product in its AvailableProducts
+            (
+                SELECT REF(dc)
+                FROM DistributionCenter dc
+                WHERE v_product_ref MEMBER OF dc.ListOfProducts
+                ORDER BY DBMS_RANDOM.VALUE
+                FETCH FIRST 1 ROW ONLY
+            )
         );
     END LOOP;
 
@@ -333,9 +354,11 @@ DECLARE
     v_chief_tax_code    ChiefOfficier.TaxCode%TYPE;
     v_member_tax_code   TeamMember.TaxCode%TYPE;
     v_rows_processed    NUMBER := 0;
+    v_center_name       DistributionCenter.CenterName%TYPE;
+    v_dist_center_ref   REF DistCenter_t;
+-- ...existing code...
 
     -- Cursor to select available chief officers (not already assigned as chief to a team)
-    -- This is a simplification; in a real system, you might manage chief availability more complexly.
     CURSOR c_available_chiefs IS
         SELECT co.TaxCode
         FROM ChiefOfficier co
@@ -346,11 +369,10 @@ DECLARE
         ORDER BY DBMS_RANDOM.VALUE;
 
     -- Cursor to select available team members (not chief officers, not already in this team)
-    -- This picks general members, we'll try to ensure they are not chiefs.
     CURSOR c_available_members IS
         SELECT tm.TaxCode
         FROM TeamMember tm
-        WHERE NOT EXISTS (SELECT 1 FROM ChiefOfficier co WHERE co.TaxCode = tm.TaxCode) -- Ensure not a chief
+        WHERE NOT EXISTS (SELECT 1 FROM ChiefOfficier co WHERE co.TaxCode = tm.TaxCode)
         ORDER BY DBMS_RANDOM.VALUE;
 BEGIN
     DBMS_OUTPUT.PUT_LINE('--- Populating LogisticTeam Table ---');
@@ -385,20 +407,30 @@ BEGIN
         END LOOP;
         CLOSE c_available_members;
 
+        -- Assign a random Distribution Center to this team (for OfDistCenter)
+        SELECT CenterName INTO v_center_name
+        FROM DistributionCenter
+        ORDER BY DBMS_RANDOM.VALUE
+        FETCH FIRST 1 ROW ONLY;
+
+        SELECT REF(dc) INTO v_dist_center_ref
+        FROM DistributionCenter dc
+        WHERE dc.CenterName = v_center_name;
+
         -- If a team has no members (highly unlikely with this logic, but good to check)
         IF v_team_members_list IS NULL OR v_team_members_list.COUNT = 0 THEN
-            -- Skip this team or handle as an error
             DBMS_OUTPUT.PUT_LINE('Warning: Skipping Team ' || v_team_code || ' as no members could be assigned.');
             CONTINUE;
         END IF;
 
-        INSERT INTO LogisticTeam (TeamCode, TeamName, TeamChief, TeamMembers, CompletedDeliveries)
+        INSERT INTO LogisticTeam (TeamCode, TeamName, TeamChief, TeamMembers, OfDistCenter, CompletedDeliveries)
         VALUES (
             v_team_code,
             'LogTeam ' || LPAD(v_team_code, 2, '0'),
             v_chief_ref,
             v_team_members_list,
-            DBMS_RANDOM.VALUE(0, 50) -- Random number of completed deliveries
+            v_dist_center_ref,
+            0
         );
         v_rows_processed := v_rows_processed + 1;
     END LOOP;
@@ -410,7 +442,7 @@ BEGIN
 EXCEPTION
     WHEN NO_DATA_FOUND THEN
         ROLLBACK;
-        DBMS_OUTPUT.PUT_LINE('Error: Not enough chief officers or team members found. Ensure ChiefOfficier and TeamMember tables are populated: ' || SQLERRM);
+        DBMS_OUTPUT.PUT_LINE('Error: Not enough chief officers, team members, or distribution centers found. Ensure all prerequisite tables are populated: ' || SQLERRM);
     WHEN OTHERS THEN
         ROLLBACK;
         DBMS_OUTPUT.PUT_LINE('Error populating LogisticTeam table: ' || SQLERRM);
@@ -420,15 +452,10 @@ END;
 DECLARE
     v_center_name       VARCHAR2(30);
     v_location          Location; -- Type name as per your DDL
-    v_logistic_team_ref REF LogisticTeam_t;
     v_product_ref       REF Product_t; -- Type name as per your DDL
     v_product_list      ProductList; -- Type name as per your DDL
-    v_team_code         LogisticTeam.TeamCode%TYPE;
 BEGIN
     DBMS_OUTPUT.PUT_LINE('--- Populating DistributionCenter Table ---');
-
-    -- Note: Your DDL uses CenterName as PRIMARY KEY, not a sequence-generated ID.
-    -- So we'll construct CenterName directly.
 
     FOR i IN 1..15 LOOP -- Populating 15 sample distribution centers
         v_center_name := 'DC_' || LPAD(i, 2, '0') || '_HQ';
@@ -440,18 +467,6 @@ BEGIN
             TO_CHAR(MOD(i, 20) + 1),
             MOD(i * 200 + 50000, 99999) + 1
         );
-
-        -- Get a random Logistic Team REF
-        -- Ensure there's at least one team in the LogisticTeam table
-        SELECT TeamCode INTO v_team_code
-        FROM LogisticTeam
-        ORDER BY DBMS_RANDOM.VALUE
-        FETCH FIRST 1 ROW ONLY;
-
-        SELECT REF(lt) INTO v_logistic_team_ref
-        FROM LogisticTeam lt
-        WHERE lt.TeamCode = v_team_code;
-
 
         -- Populate ListOfProducts (NESTED TABLE)
         v_product_list := ProductList(); -- Initialize the nested table
@@ -468,11 +483,10 @@ BEGIN
             v_product_list(v_product_list.LAST) := v_product_ref;
         END LOOP;
 
-        INSERT INTO DistributionCenter (CenterName, CenterLocation, ByTeam, ListOfProducts)
+        INSERT INTO DistributionCenter (CenterName, CenterLocation, ListOfProducts)
         VALUES (
             v_center_name,
             v_location,
-            v_logistic_team_ref,
             v_product_list
         );
     END LOOP;
@@ -483,7 +497,7 @@ BEGIN
 EXCEPTION
     WHEN NO_DATA_FOUND THEN
         ROLLBACK;
-        DBMS_OUTPUT.PUT_LINE('Error: Not enough Logistic Teams or Products found. Ensure LogisticTeam and Product tables are populated: ' || SQLERRM);
+        DBMS_OUTPUT.PUT_LINE('Error: Not enough Products found. Ensure Product table is populated: ' || SQLERRM);
     WHEN OTHERS THEN
         ROLLBACK;
         DBMS_OUTPUT.PUT_LINE('Error populating DistributionCenter table: ' || SQLERRM);
@@ -502,6 +516,7 @@ DECLARE
     v_order_date           DATE;
     v_expected_delivery_date DATE;
     v_delivery_status      VARCHAR2(15);
+    v_dist_center_ref      REF DistCenter_t;   -- Added declaration for distribution center REF
 BEGIN
     DBMS_OUTPUT.PUT_LINE('--- Populating BatchOrder Table ---');
 
@@ -568,6 +583,28 @@ BEGIN
             v_order_batches.EXTEND;
             v_order_batches(v_order_batches.LAST) := v_product_batch_ref;
         END LOOP;
+
+        -- Find a product batch and its distribution center
+        SELECT BatchID, ByDistCenter INTO v_batch_id, v_dist_center_ref
+        FROM ProductBatch
+        ORDER BY DBMS_RANDOM.VALUE
+        FETCH FIRST 1 ROW ONLY;
+
+        SELECT REF(pb) INTO v_product_batch_ref
+        FROM ProductBatch pb
+        WHERE pb.BatchID = v_batch_id;
+
+        -- Build the order batches nested table (can add more batches if needed)
+        v_order_batches := BatchList();
+        v_order_batches.EXTEND;
+        v_order_batches(v_order_batches.LAST) := v_product_batch_ref;
+
+        -- Find a logistic team assigned to the same distribution center
+        SELECT REF(lt) INTO v_logistic_team_ref
+        FROM LogisticTeam lt
+        WHERE lt.OfDistCenter = v_dist_center_ref
+        ORDER BY DBMS_RANDOM.VALUE
+        FETCH FIRST 1 ROW ONLY;
 
         INSERT INTO BatchOrder (OrderID, OrderBatches, OrderDate, ExpectedDeliveryDate, DeliveryStatus, ByCustomer, ByLogisticTeam)
         VALUES (

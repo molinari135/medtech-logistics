@@ -20,15 +20,13 @@ services:
         sleep 15 
 
         # Run each of your scripts in sequence
-        sqlplus -S system/$$ORACLE_PWD@$$ORACLE_SID @/scripts/00_inituser.sql
+        sqlplus -S system/$$ORACLE_PWD@$$ORACLE_SID @/scripts/00_medtechdba.sql
         sqlplus -S $$MEDTECHDBA/$$MEDTECHDBA_PWD@$$ORACLE_SID @/scripts/01_types.sql
         sqlplus -S $$MEDTECHDBA/$$MEDTECHDBA_PWD@$$ORACLE_SID @/scripts/02_tables.sql
         sqlplus -S $$MEDTECHDBA/$$MEDTECHDBA_PWD@$$ORACLE_SID @/scripts/03_indexes.sql
         sqlplus -S $$MEDTECHDBA/$$MEDTECHDBA_PWD@$$ORACLE_SID @/scripts/04_triggers.sql
         sqlplus -S $$MEDTECHDBA/$$MEDTECHDBA_PWD@$$ORACLE_SID @/scripts/05_views.sql
         sqlplus -S $$MEDTECHDBA/$$MEDTECHDBA_PWD@$$ORACLE_SID @/scripts/06_populatedb.sql
-        sqlplus -S $$MEDTECHDBA/$$MEDTECHDBA_PWD@$$ORACLE_SID @/scripts/07_triggertests.sql
-
         wait $$!
       "
 

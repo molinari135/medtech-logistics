@@ -47,15 +47,6 @@ CREATE OR REPLACE TYPE Product_t AS OBJECT
 );
 /
 
-CREATE OR REPLACE TYPE ProdBatch_t AS OBJECT
-(
-    BatchID NUMBER,
-    BatchProduct REF Product_t,
-    Quantity NUMBER,
-    ArrivalDate DATE
-);
-/
-
 CREATE OR REPLACE TYPE PhoneList AS VARRAY(3) OF NUMBER(10);
 /
 
@@ -105,6 +96,17 @@ CREATE OR REPLACE TYPE ChiefOfficier_t UNDER TeamMember_t
 );
 /
 
+CREATE OR REPLACE TYPE ProductList AS TABLE OF REF Product_t;
+/
+
+CREATE OR REPLACE TYPE DistCenter_t AS OBJECT
+(
+    CenterName VARCHAR2(30),
+    CenterLocation Location,
+    ListOfProducts ProductList
+);
+/
+
 CREATE OR REPLACE TYPE MemberList AS TABLE OF REF TeamMember_t;
 /
 
@@ -114,19 +116,18 @@ CREATE OR REPLACE TYPE LogisticTeam_t AS OBJECT
     TeamName VARCHAR2(20),
     TeamChief REF ChiefOfficier_t,
     TeamMembers MemberList,
+    OfDistCenter REF DistCenter_t,
     CompletedDeliveries NUMBER
 );
 /
 
-CREATE OR REPLACE TYPE ProductList AS TABLE OF REF Product_t;
-/
-
-CREATE OR REPLACE TYPE DistCenter_t AS OBJECT
+CREATE OR REPLACE TYPE ProdBatch_t AS OBJECT
 (
-    CenterName VARCHAR2(30),
-    CenterLocation Location,
-    ByTeam REF LogisticTeam_t,
-    ListOfProducts ProductList
+    BatchID NUMBER,
+    BatchProduct REF Product_t,
+    Quantity NUMBER,
+    ArrivalDate DATE,
+    ByDistCenter REF DistCenter_t
 );
 /
 

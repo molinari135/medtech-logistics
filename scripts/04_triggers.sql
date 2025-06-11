@@ -97,4 +97,33 @@ EXCEPTION
     WHEN NO_DATA_FOUND THEN
         RAISE_APPLICATION_ERROR(-20007, 'No suitable replacement chief officer found.');
 END;
-/    
+/
+
+-- Forbid inserting expired products in batches
+CREATE OR REPLACE TRIGGER TrgNoExpiredProductBatch
+BEFORE INSERT OR UPDATE OF BatchProduct ON ProductBatch
+FOR EACH ROW
+DECLARE
+    v_expiry_date DATE;
+BEGIN
+    -- Get the expiry date of the product referenced by BatchProduct
+    SELECT p.ExpiryDate INTO v_expiry_date
+    FROM Product p
+    WHERE REF(p) = :NEW.BatchProduct;
+
+    IF v_expiry_date < TRUNC(SYSDATE) THEN
+        RAISE_APPLICATION_ERROR(-20008, 'Cannot assign expired product to a batch.');
+    END IF;
+END;
+/
+
+-- Forbid arrival date of batches in the past
+CREATE OR REPLACE TRIGGER TrgBatchArrivalDate
+BEFORE INSERT OR UPDATE OF ArrivalDate ON ProductBatch
+FOR EACH ROW
+BEGIN
+    IF :NEW.ArrivalDate < TRUNC(SYSDATE) THEN
+        RAISE_APPLICATION_ERROR(-20009, 'Batch arrival date cannot be in the past.');
+    END IF;
+END;
+/

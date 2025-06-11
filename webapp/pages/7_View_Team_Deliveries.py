@@ -12,12 +12,19 @@ else:
         # Fetch all chief officers
         with connection.cursor() as cursor:
             cursor.execute(
-                "SELECT TaxCode, MemberName, MemberSurname FROM ChiefOfficier ORDER BY MemberSurname, MemberName"
+                """
+                SELECT c.TaxCode, c.MemberName, c.MemberSurname
+                FROM ChiefOfficier c
+                WHERE EXISTS (
+                    SELECT 1 FROM LogisticTeam t WHERE t.TeamChief = REF(c)
+                )
+                ORDER BY c.MemberSurname, c.MemberName
+                """
             )
             chiefs = cursor.fetchall()
         chief_options = {
             f"{(row[1] or '')} {(row[2] or '')} (TaxCode: {row[0]})": row[0]
-            for row in chiefs
+            for row in sorted(chiefs, key=lambda r: r[0])
         }
         with st.form("select_chief_form"):
             st.subheader("Select Chief Officer to View Team Deliveries")
@@ -45,10 +52,24 @@ else:
                 st.stop()
             team_codes = [row[0] for row in teams]
             team_names = [row[1] for row in teams]
+            # Show the taxcodes of the chiefs for the selected teams
+            format_codes = ','.join(str(tc) for tc in team_codes)
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    f'''
+                    SELECT DISTINCT DEREF(lt.TeamChief).TaxCode
+                    FROM LogisticTeam lt
+                    WHERE lt.TeamCode IN ({format_codes})
+                    '''
+                )
+                chief_taxcodes = [row[0] for row in cursor.fetchall()]
+            st.markdown(
+                f"**Chief TaxCodes for selected teams:** "
+                f"{', '.join(str(tc) for tc in chief_taxcodes)}"
+            )
             st.markdown(f"### Deliveries for Team(s): {', '.join(team_names)}")
             # Fetch all deliveries (orders) assigned to these teams
             with connection.cursor() as cursor:
-                format_codes = ','.join(str(tc) for tc in team_codes)
                 cursor.execute(
                     f'''
                     SELECT bo.OrderID, bo.OrderDate, bo.ExpectedDeliveryDate,

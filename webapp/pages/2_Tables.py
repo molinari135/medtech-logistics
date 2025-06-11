@@ -139,8 +139,8 @@ def logistic_teams():
                     LT.TeamCode,
                     LT.TeamName,
                     DEREF(LT.TeamChief).TaxCode AS ChiefTaxCode,
-                    DEREF(LT.TeamChief).MemberName AS ChiefName,
-                    DEREF(LT.TeamChief).MemberSurname AS ChiefSurname,
+                    TMEM.MemberName AS ChiefName,
+                    TMEM.MemberSurname AS ChiefSurname,
                     LT.CompletedDeliveries,
                     DEREF(TM.COLUMN_VALUE).TaxCode AS MemberTaxCode,
                     DEREF(TM.COLUMN_VALUE).MemberName AS MemberName,
@@ -148,7 +148,8 @@ def logistic_teams():
                     DEREF(TM.COLUMN_VALUE).BirthDate AS MemberBirthDate,
                     DEREF(TM.COLUMN_VALUE).EmploymentDate AS MemberEmploymentDate
                 FROM
-                    LogisticTeam LT,
+                    LogisticTeam LT
+                    LEFT JOIN TeamMember TMEM ON TMEM.TaxCode = DEREF(LT.TeamChief).TaxCode,
                     TABLE(LT.TeamMembers) TM
                 '''
             )

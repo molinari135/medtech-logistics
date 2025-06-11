@@ -6,15 +6,6 @@ CREATE TABLE Product OF Product_t
 );
 /
 
-CREATE TABLE ProductBatch OF ProdBatch_t
-(
-    BatchID PRIMARY KEY,
-    BatchProduct NOT NULL SCOPE IS Product,
-    Quantity NOT NULL,
-    ArrivalDate NOT NULL
-);
-/
-
 CREATE TABLE Department OF Department_t
 (
     DepartmentID PRIMARY KEY,
@@ -65,6 +56,16 @@ CREATE TABLE DistributionCenter OF DistCenter_t
     CenterLocation NOT NULL
 )
 NESTED TABLE ListOfProducts STORE AS ListOfProductsNT;
+/
+
+CREATE TABLE ProductBatch OF ProdBatch_t
+(
+    BatchID PRIMARY KEY,
+    BatchProduct NOT NULL SCOPE IS Product,
+    Quantity NOT NULL,
+    ArrivalDate NOT NULL,
+    ByDistCenter NOT NULL SCOPE IS DistributionCenter
+);
 /
 
 CREATE TABLE BatchOrder OF BatchOrder_t

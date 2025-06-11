@@ -51,49 +51,6 @@ END;
 /
 
 DECLARE
-    v_batch_id      NUMBER;
-    v_product_ref   REF Product_t; -- Using Product_t, assuming your type is named this way
-    v_product_serial VARCHAR2(10);
-BEGIN
-    DBMS_OUTPUT.PUT_LINE('--- Populating ProductBatch Table ---');
-
-    FOR i IN 1..200 LOOP -- Insert 200 sample product batches
-        v_batch_id := product_batch_id_seq.NEXTVAL; -- Get the next ID from the sequence
-
-        -- Randomly select an existing product's SerialNo
-        SELECT SerialNo INTO v_product_serial
-        FROM Product
-        ORDER BY DBMS_RANDOM.VALUE
-        FETCH FIRST 1 ROW ONLY;
-
-        -- Get the REF to that product
-        SELECT REF(p) INTO v_product_ref
-        FROM Product p
-        WHERE p.SerialNo = v_product_serial;
-
-        INSERT INTO ProductBatch (BatchID, BatchProduct, Quantity, ArrivalDate)
-        VALUES (
-            v_batch_id,
-            v_product_ref,
-            DBMS_RANDOM.VALUE(10, 500), -- Random quantity between 10 and 500 units
-            SYSDATE - DBMS_RANDOM.VALUE(1, 365) -- Arrival date within the last year
-        );
-    END LOOP;
-
-    COMMIT; -- Save all changes
-    DBMS_OUTPUT.PUT_LINE('Successfully populated 200 product batches into the ProductBatch table.');
-
-EXCEPTION
-    WHEN NO_DATA_FOUND THEN
-        ROLLBACK;
-        DBMS_OUTPUT.PUT_LINE('Error: No products found in the Product table. Please ensure the Product table is populated before running this script.');
-    WHEN OTHERS THEN
-        ROLLBACK;
-        DBMS_OUTPUT.PUT_LINE('Error populating ProductBatch table: ' || SQLERRM);
-END;
-/
-
-DECLARE
     v_department_id NUMBER;
     v_contact_info  ContactInfo;
     v_phone_list    PhoneList;
@@ -487,6 +444,63 @@ EXCEPTION
     WHEN OTHERS THEN
         ROLLBACK;
         DBMS_OUTPUT.PUT_LINE('Error populating DistributionCenter table: ' || SQLERRM);
+END;
+/
+
+DECLARE
+    v_batch_id      NUMBER;
+    v_product_ref   REF Product_t;
+    v_center_ref    REF DistCenter_t;
+    v_product_serial NUMBER;
+    v_center_name   VARCHAR2(30);
+BEGIN
+    DBMS_OUTPUT.PUT_LINE('--- Populating ProductBatch Table ---');
+
+    FOR i IN 1..200 LOOP -- Insert 200 sample product batches
+        v_batch_id := product_batch_id_seq.NEXTVAL;
+
+        -- Randomly select an existing product's SerialNo
+        SELECT SerialNo INTO v_product_serial
+        FROM Product
+        ORDER BY DBMS_RANDOM.VALUE
+        FETCH FIRST 1 ROW ONLY;
+
+        -- Get the REF to that product
+        SELECT REF(p) INTO v_product_ref
+        FROM Product p
+        WHERE p.SerialNo = v_product_serial;
+
+        -- Randomly select an existing distribution center
+        SELECT CenterName INTO v_center_name
+        FROM DistributionCenter
+        ORDER BY DBMS_RANDOM.VALUE
+        FETCH FIRST 1 ROW ONLY;
+
+        -- Get the REF to that center
+        SELECT REF(dc) INTO v_center_ref
+        FROM DistributionCenter dc
+        WHERE dc.CenterName = v_center_name;
+
+        INSERT INTO ProductBatch (BatchID, BatchProduct, Quantity, ArrivalDate, ByDistCenter)
+        VALUES (
+            v_batch_id,
+            v_product_ref,
+            TRUNC(DBMS_RANDOM.VALUE(10, 500)), -- Random quantity between 10 and 500 units
+            SYSDATE - TRUNC(DBMS_RANDOM.VALUE(1, 365)), -- Arrival date within the last year
+            v_center_ref
+        );
+    END LOOP;
+
+    COMMIT; -- Save all changes
+    DBMS_OUTPUT.PUT_LINE('Successfully populated 200 product batches into the ProductBatch table.');
+
+EXCEPTION
+    WHEN NO_DATA_FOUND THEN
+        ROLLBACK;
+        DBMS_OUTPUT.PUT_LINE('Error: No products or distribution centers found. Please ensure the Product and DistributionCenter tables are populated before running this script. ' || SQLERRM);
+    WHEN OTHERS THEN
+        ROLLBACK;
+        DBMS_OUTPUT.PUT_LINE('Error populating ProductBatch table: ' || SQLERRM);
 END;
 /
 

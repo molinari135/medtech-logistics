@@ -47,15 +47,6 @@ CREATE OR REPLACE TYPE Product_t AS OBJECT
 );
 /
 
-CREATE OR REPLACE TYPE ProdBatch_t AS OBJECT
-(
-    BatchID NUMBER,
-    BatchProduct REF Product_t,
-    Quantity NUMBER,
-    ArrivalDate DATE
-);
-/
-
 CREATE OR REPLACE TYPE PhoneList AS VARRAY(3) OF NUMBER(10);
 /
 
@@ -127,6 +118,16 @@ CREATE OR REPLACE TYPE DistCenter_t AS OBJECT
     CenterLocation Location,
     ByTeam REF LogisticTeam_t,
     ListOfProducts ProductList
+);
+/
+
+CREATE OR REPLACE TYPE ProdBatch_t AS OBJECT
+(
+    BatchID NUMBER,
+    BatchProduct REF Product_t,
+    Quantity NUMBER,
+    ArrivalDate DATE,
+    ByDistCenter REF DistCenter_t
 );
 /
 

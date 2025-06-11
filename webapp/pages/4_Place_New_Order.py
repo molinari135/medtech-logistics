@@ -37,14 +37,37 @@ else:
             cursor.execute("SELECT NVL(MAX(OrderID), 0) + 1 FROM BatchOrder")
             next_order_id = cursor.fetchone()[0]
 
+        # Map: center_name -> [batch rows]
+        center_to_batches = {}
+        for row in batches:
+            # Find the center for this batch
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    "SELECT dc.CenterName FROM DistributionCenter dc, "
+                    "TABLE(dc.ListOfProducts) p WHERE DEREF(p.COLUMN_VALUE).SerialNo = :serial_no",
+                    {'serial_no': row[1]}
+                )
+                center_name = cursor.fetchone()[0]
+            center_to_batches.setdefault(center_name, []).append(row)
+        # Let user select a center outside the form so batch list updates
+        center = st.selectbox(
+            "Select Distribution Center for this order",
+            list(center_to_batches.keys()),
+            key="order_center_select"
+        )
+        center_batches = center_to_batches[center]
+        batch_label_map = {
+            f"BatchID: {row[0]} | Product: {row[1]} | Qty: {row[2]} | Arrived: {row[3].strftime('%Y-%m-%d')}": row
+            for row in center_batches
+        }
         with st.form("quick_place_order_form"):
             st.subheader("Quick Place a New Batch Order")
             st.info(f"Next Order ID will be: {next_order_id}")
             customer = st.selectbox("Select Customer", customers)
-            # Only show batches that can be provided by at least one DC
-            valid_batches = [row for row in batches if row[1] in serial_to_dc]
-            batch_label_map = {f"BatchID: {row[0]} | Product: {row[1]} | Qty: {row[2]} | Arrived: {row[3].strftime('%Y-%m-%d')}": row for row in valid_batches}
-            selected_batch_labels = st.multiselect("Select Product Batches for Order", list(batch_label_map.keys()))
+            selected_batch_labels = st.multiselect(
+                "Select Product Batches for Order (from this center only)",
+                list(batch_label_map.keys())
+            )
             selected_batches = [batch_label_map[lab] for lab in selected_batch_labels]
             expected_delivery = st.date_input(
                 "Expected Delivery Date",
@@ -107,32 +130,3 @@ else:
                     st.error(f"Database Error: {error_obj.message}")
                 except Exception as e:
                     st.error(f"Unexpected error: {e}")
-            # Show a hint: which batches can be ordered together
-            # from the same center
-            center_to_batches = {}
-            with connection.cursor() as cursor:
-                for row in valid_batches:
-                    cursor.execute(
-                        "SELECT dc.CenterName FROM DistributionCenter dc, "
-                        "TABLE(dc.ListOfProducts) p WHERE DEREF(p.COLUMN_VALUE).SerialNo = :serial_no",
-                        {'serial_no': row[1]}
-                    )
-                    center_name = cursor.fetchone()[0]
-                    label = [
-                        k for k, v in batch_label_map.items()
-                        if v[0] == row[0]
-                    ][0]
-                    center_to_batches.setdefault(center_name, []).append(label)
-            if center_to_batches:
-                st.markdown(
-                    "**Batches you can order together from the same center:**"
-                )
-                for center, labels in center_to_batches.items():
-                    # Only show the batch code (BatchID) for each batch
-                    batch_codes = [
-                        label.split()[1].strip(':')
-                        for label in labels
-                    ]
-                    st.markdown(
-                        f"- **{center}**: {', '.join(batch_codes)}"
-                    )

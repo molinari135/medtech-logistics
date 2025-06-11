@@ -28,6 +28,7 @@ BEGIN
     FOR i IN 1..50 LOOP -- Insert 50 sample products
         v_product_serial := LPAD(i, 3, '0'); -- Generates PROD-001, PROD-002, etc.
 
+        -- 10% of products will be expired (expiry date in the past)
         INSERT INTO Product (SerialNo, ProductCategory, ExpiryDate)
         VALUES (
             v_product_serial,
@@ -36,7 +37,10 @@ BEGIN
                 WHEN MOD(i, 3) = 1 THEN 'Supplies'
                 ELSE 'Consumables'
             END,
-            SYSDATE + (DBMS_RANDOM.VALUE(1, 365) * 5) -- Expires randomly within the next 5 years
+            CASE
+                WHEN MOD(i, 10) = 0 THEN SYSDATE - DBMS_RANDOM.VALUE(1, 365) -- Expired within last year
+                ELSE SYSDATE + (DBMS_RANDOM.VALUE(1, 365) * 5) -- Expires randomly within the next 5 years
+            END
         );
     END LOOP;
 

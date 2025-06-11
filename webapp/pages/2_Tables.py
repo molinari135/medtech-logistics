@@ -31,16 +31,9 @@ def product_batches():
                     PB.BatchID,
                     PB.Quantity,
                     PB.ArrivalDate,
-                    -- Details from the referenced Product
                     DEREF(PB.BatchProduct).SerialNo AS ProductSerialNo,
                     DEREF(PB.BatchProduct).ProductCategory AS ProductCategory,
-                    DEREF(PB.BatchProduct).ExpiryDate AS ProductExpiryDate,
-                    -- Details from the referenced DistributionCenter
-                    DEREF(PB.ByDistCenter).CenterName AS DistributionCenterName,
-                    DEREF(PB.ByDistCenter).CenterLocation.City AS DistributionCenterCity,
-                    DEREF(PB.ByDistCenter).CenterLocation.Street AS DistributionCenterStreet,
-                    DEREF(PB.ByDistCenter).CenterLocation.StreetNo AS DistributionCenterStreetNo,
-                    DEREF(PB.ByDistCenter).CenterLocation.ZipCode AS DistributionCenterZipCode
+                    DEREF(PB.BatchProduct).ExpiryDate AS ProductExpiryDate
                 FROM
                     ProductBatch PB
                 '''
@@ -64,7 +57,9 @@ def departments():
                     D.DeptContact.Email AS DepartmentEmail,
                     D.DeptContact.Fax AS DepartmentFax,
                     (SELECT LISTAGG(P.COLUMN_VALUE, ', ') WITHIN GROUP (ORDER BY ROWNUM)
-                    FROM TABLE(D.DeptContact.PhoneNumbers) P) AS DepartmentPhoneNumbers
+                        FROM TABLE(D.DeptContact.PhoneNumbers) P) AS DepartmentPhoneNumbers,
+                    (SELECT LISTAGG(DEREF(SP.COLUMN_VALUE).SerialNo, ', ')
+                        FROM TABLE(D.SupplyPreferences) SP) AS SupplyPreferenceSerialNos
                 FROM Department D
                 '''
             )
@@ -73,9 +68,9 @@ def departments():
                 columns = [desc[0] for desc in cursor.description]
                 df = pd.DataFrame(rows, columns=columns)
                 st.dataframe(df, use_container_width=True)
-                st.info(f"Showing {len(df)} rows from ViewDeptSupplyPreferences.")
+                st.info(f"Showing {len(df)} rows from Department.")
             else:
-                st.info("ViewDeptSupplyPreferences view is empty or no data accessible.")
+                st.info("Department table is empty or no data accessible.")
         
 
 def customers():
@@ -143,13 +138,15 @@ def logistic_teams():
                 SELECT
                     LT.TeamCode,
                     LT.TeamName,
-                    DEREF(LT.OfDistCenter).CenterName AS DistributionCenterName,
+                    DEREF(LT.TeamChief).TaxCode AS ChiefTaxCode,
+                    DEREF(LT.TeamChief).MemberName AS ChiefName,
+                    DEREF(LT.TeamChief).MemberSurname AS ChiefSurname,
+                    LT.CompletedDeliveries,
                     DEREF(TM.COLUMN_VALUE).TaxCode AS MemberTaxCode,
                     DEREF(TM.COLUMN_VALUE).MemberName AS MemberName,
                     DEREF(TM.COLUMN_VALUE).MemberSurname AS MemberSurname,
                     DEREF(TM.COLUMN_VALUE).BirthDate AS MemberBirthDate,
-                    DEREF(TM.COLUMN_VALUE).EmploymentDate AS MemberEmploymentDate,
-                    LT.CompletedDeliveries
+                    DEREF(TM.COLUMN_VALUE).EmploymentDate AS MemberEmploymentDate
                 FROM
                     LogisticTeam LT,
                     TABLE(LT.TeamMembers) TM
@@ -160,9 +157,9 @@ def logistic_teams():
                 columns = [desc[0] for desc in cursor.description]
                 df = pd.DataFrame(rows, columns=columns)
                 st.dataframe(df, use_container_width=True)
-                st.info(f"Showing {len(df)} rows from ViewLogisticTeamMembers.")
+                st.info(f"Showing {len(df)} rows from LogisticTeam.")
             else:
-                st.info("ViewLogisticTeamMembers view is empty or no data accessible.")
+                st.info("LogisticTeam table is empty or no data accessible.")
 
 def distribution_centers():
     with st.expander("Distribution Centers", expanded=False):

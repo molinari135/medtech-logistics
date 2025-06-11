@@ -69,30 +69,26 @@ else:
                     cursor.execute(
                         """
                         INSERT INTO ProductBatch \
-                        (BatchID, BatchProduct, Quantity, ArrivalDate, \
-                         ByDistCenter)
+                        (BatchID, BatchProduct, Quantity, ArrivalDate)
                         VALUES (
                             :batch_id,
                             (SELECT REF(p) FROM Product p \
                              WHERE p.SerialNo = :serial_no),
                             :quantity,
-                            :arrival_date,
-                            (SELECT REF(dc) FROM DistributionCenter dc \
-                             WHERE dc.CenterName = :center_name)
+                            :arrival_date
                         )
                         """,
                         {
                             'batch_id': int(next_batch_id),
                             'serial_no': serial_no,
                             'quantity': int(quantity),
-                            'arrival_date': arrival_date,
-                            'center_name': center
+                            'arrival_date': arrival_date
                         }
                     )
                     connection.commit()
                     st.success(
                         f"Batch {next_batch_id} registered for product "
-                        f"{serial_no} at {center}."
+                        f"{serial_no}."
                     )
             except oracledb.Error as e:
                 error_obj, = e.args

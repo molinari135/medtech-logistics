@@ -36,13 +36,12 @@ else:
             # Get the first batch of the selected order
             with connection.cursor() as cursor:
                 cursor.execute(
-                    """
-                    SELECT DEREF(CAST(COLUMN_VALUE AS REF ProdBatch_t)).BatchID
-                    FROM TABLE(
-                        SELECT OrderBatches FROM BatchOrder WHERE OrderID = :order_id
-                    )
-                    WHERE ROWNUM = 1
-                    """,
+                    '''
+                    SELECT DEREF(CAST(t.COLUMN_VALUE AS REF ProdBatch_t)).BatchID
+                    FROM BatchOrder bo, TABLE(bo.OrderBatches) t
+                    WHERE bo.OrderID = :order_id
+                    AND ROWNUM = 1
+                    ''',
                     {'order_id': order_id}
                 )
                 batch_row = cursor.fetchone()
@@ -53,11 +52,15 @@ else:
 
                 # Find the distribution center of the batch
                 cursor.execute(
-                    """
-                    SELECT DEREF(ByDistCenter).CenterName
-                    FROM ProductBatch
-                    WHERE BatchID = :batch_id
-                    """,
+                    '''
+                    SELECT dc.CenterName
+                    FROM DistributionCenter dc, TABLE(dc.ListOfProducts) p
+                    WHERE DEREF(p.COLUMN_VALUE).SerialNo = (
+                        SELECT DEREF(pb.BatchProduct).SerialNo
+                        FROM ProductBatch pb
+                        WHERE pb.BatchID = :batch_id
+                    )
+                    ''',
                     {'batch_id': first_batch_id}
                 )
                 dc_row = cursor.fetchone()

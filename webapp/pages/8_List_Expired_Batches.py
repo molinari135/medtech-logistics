@@ -15,8 +15,13 @@ else:
                 SELECT pb.BatchID, DEREF(pb.BatchProduct).SerialNo, 
                        DEREF(pb.BatchProduct).ProductCategory, 
                        DEREF(pb.BatchProduct).ExpiryDate, pb.Quantity, 
-                       pb.ArrivalDate, DEREF(pb.ByDistCenter).CenterName
+                       pb.ArrivalDate, dc.CenterName
                 FROM ProductBatch pb
+                JOIN DistributionCenter dc
+                  ON EXISTS (
+                    SELECT 1 FROM TABLE(dc.ListOfProducts) p
+                    WHERE DEREF(p.COLUMN_VALUE).SerialNo = DEREF(pb.BatchProduct).SerialNo
+                  )
                 WHERE DEREF(pb.BatchProduct).ExpiryDate < TRUNC(SYSDATE)
                 ORDER BY pb.BatchID
                 '''

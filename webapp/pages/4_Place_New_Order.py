@@ -113,9 +113,9 @@ else:
             with connection.cursor() as cursor:
                 for row in valid_batches:
                     cursor.execute(
-                        "SELECT DEREF(ByDistCenter).CenterName "
-                        "FROM ProductBatch WHERE BatchID = :batch_id",
-                        {'batch_id': row[0]}
+                        "SELECT dc.CenterName FROM DistributionCenter dc, "
+                        "TABLE(dc.ListOfProducts) p WHERE DEREF(p.COLUMN_VALUE).SerialNo = :serial_no",
+                        {'serial_no': row[1]}
                     )
                     center_name = cursor.fetchone()[0]
                     label = [

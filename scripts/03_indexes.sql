@@ -1,6 +1,7 @@
 -- Indexes on REF columns for joins/relationships
 CREATE INDEX IdxProdBatchProduct ON ProductBatch(BatchProduct);
 CREATE INDEX IdxLogTeamChief ON LogisticTeam(TeamChief);
+CREATE INDEX IdxDistCenterByTeam ON DistributionCenter(ByTeam);
 CREATE INDEX IdxBatchOrderByCustomer ON BatchOrder(ByCustomer);
 CREATE INDEX IdxBatchOrderByLogTeam ON BatchOrder(ByLogisticTeam);
 CREATE INDEX IdxComplaintByCustomer ON Complaint(ByCustomer);

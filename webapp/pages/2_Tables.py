@@ -4,7 +4,9 @@ import pandas as pd
 import oracledb
 import db_utils # Import your database utility functions
 
+
 st.title("🗄️ MedTech Logistic Tables Overview")
+
 
 def products():
     with st.expander("Products", expanded=False):
@@ -20,8 +22,8 @@ def products():
                 st.info(f"Showing {len(df)} rows from Product.")
             else:
                 st.info("Product table is empty or no data accessible.")
-        
-                
+  
+         
 def product_batches():
     with st.expander("Products Batches", expanded=False):
         with connection.cursor() as cursor:
@@ -47,6 +49,7 @@ def product_batches():
             else:
                 st.info("ProductBatch table is empty or no data accessible.")
 
+
 def departments():
     with st.expander("Departments", expanded=False):
         with connection.cursor() as cursor:
@@ -71,7 +74,7 @@ def departments():
                 st.info(f"Showing {len(df)} rows from Department.")
             else:
                 st.info("Department table is empty or no data accessible.")
-        
+     
 
 def customers():
     with st.expander("Customers", expanded=False):
@@ -100,6 +103,7 @@ def customers():
             else:
                 st.info("ViewCustomerDeptAffiliation view is empty or no data accessible.")
 
+
 def team_members():
     with st.expander("Team Members", expanded=False):
         with connection.cursor() as cursor:
@@ -114,7 +118,8 @@ def team_members():
                 st.info(f"Showing {len(df)} rows from TeamMember.")
             else:
                 st.info("TeamMember table is empty or no data accessible.")
-                
+
+           
 def chief_officiers():
     with st.expander("Chief Officiers", expanded=False):
         with connection.cursor() as cursor:
@@ -129,6 +134,7 @@ def chief_officiers():
                 st.info(f"Showing {len(df)} rows from ChiefOfficier.")
             else:
                 st.info("ChiefOfficier table is empty or no data accessible.")
+
 
 def logistic_teams():
     with st.expander("Logistic Teams", expanded=False):
@@ -162,6 +168,7 @@ def logistic_teams():
             else:
                 st.info("LogisticTeam table is empty or no data accessible.")
 
+
 def distribution_centers():
     with st.expander("Distribution Centers", expanded=False):
         with connection.cursor() as cursor:
@@ -185,6 +192,7 @@ def distribution_centers():
                 st.info(f"Showing {len(df)} rows from ViewDistCenterProducts.")
             else:
                 st.info("ViewDistCenterProducts view is empty or no data accessible.")
+
 
 def batch_orders():
     with st.expander("Batch Orders", expanded=False):
@@ -215,6 +223,7 @@ def batch_orders():
             else:
                 st.info("ViewBatchOrderDetails view is empty or no data accessible.")
 
+
 def complaints():
     with st.expander("Complaints", expanded=False):
         with connection.cursor() as cursor:
@@ -243,6 +252,7 @@ def complaints():
                 st.info(f"Showing {len(df)} rows from Complaint.")
             else:
                 st.info("Complaint table is empty or no data accessible.")
+
 
 # --- Check if connected ---
 if not db_utils.st.session_state.db_connected or not db_utils.st.session_state.logged_in_user:

@@ -3,7 +3,7 @@ import oracledb
 import db_utils
 from datetime import date
 
-st.title("📋 View Deliveries Assigned to My Team")
+st.title("📋 View Deliveries Assigned to a Team")
 
 if not db_utils.st.session_state.db_connected or not db_utils.st.session_state.logged_in_user:
     st.warning("You must be logged in to view deliveries. Please go to the **'Login'** page.")

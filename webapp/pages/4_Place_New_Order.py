@@ -3,7 +3,7 @@ import oracledb
 import db_utils
 from datetime import date, timedelta
 
-st.title("🚚 Quick Place New Batch Order (High Frequency)")
+st.title("🚚 Place New Batch Order")
 
 if not db_utils.st.session_state.db_connected or not db_utils.st.session_state.logged_in_user:
     st.warning("You must be logged in to place a new order. Please go to the **'Login'** page.")

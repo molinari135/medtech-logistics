@@ -4,13 +4,13 @@ services:
     container_name: oracle-xe-db
     volumes:
       - oracle-data:/opt/oracle/oradata
-      - ./scripts:/scripts # This volume mount is still needed to get files into the container
+      - ./scripts:/scripts
     ports:
       - 1521:1521
       - 5500:5500
     environment:
       - ORACLE_SID=XE
-      - ORACLE_PWD=password123 # Password for SYS/SYSTEM
+      - ORACLE_PWD=password123
       - MEDTECHDBA=C##MEDTECHDBA
       - MEDTECHDBA_PWD=medtechdba
     command: |

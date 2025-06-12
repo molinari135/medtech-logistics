@@ -19,8 +19,6 @@ CREATE SEQUENCE complaint_ticket_id_seq START WITH 1 INCREMENT BY 1 NOCACHE;
 CREATE SEQUENCE distribution_center_id_seq START WITH 1 INCREMENT BY 1 NOCACHE;
 
 DECLARE
-    -- No variables are strictly needed for this simple insert,
-    -- but we'll use one to demonstrate how you might assign product serials.
     v_product_serial VARCHAR2(10);
 BEGIN
     DBMS_OUTPUT.PUT_LINE('--- Populating Product Table ---');
@@ -44,12 +42,12 @@ BEGIN
         );
     END LOOP;
 
-    COMMIT; -- Save the changes to the database
+    COMMIT;
     DBMS_OUTPUT.PUT_LINE('Successfully populated 50 products into the Product table.');
 
 EXCEPTION
     WHEN OTHERS THEN
-        ROLLBACK; -- Rollback if any error occurs
+        ROLLBACK;
         DBMS_OUTPUT.PUT_LINE('Error populating Product table: ' || SQLERRM);
 END;
 /
@@ -58,13 +56,10 @@ DECLARE
     v_department_id NUMBER;
     v_contact_info  ContactInfo;
     v_phone_list    PhoneList;
-    v_product_ref   REF Product_t; -- Correct type name for Product REF
+    v_product_ref   REF Product_t;
     v_preferences_list PreferencesList;
 BEGIN
     DBMS_OUTPUT.PUT_LINE('--- Populating Department Table ---');
-
-    -- Ensure the sequence exists
-    -- CREATE SEQUENCE department_id_seq START WITH 1 INCREMENT BY 1 NOCACHE;
 
     FOR i IN 1..10 LOOP -- Insert 10 sample departments
         v_department_id := department_id_seq.NEXTVAL;
@@ -119,13 +114,10 @@ END;
 DECLARE
     v_customer_code    VARCHAR2(10);
     v_location         Location;
-    v_department_ref   REF Department_t; -- Assuming Department_t for REF
+    v_department_ref   REF Department_t;
     v_department_list  DepartmentList;
 BEGIN
     DBMS_OUTPUT.PUT_LINE('--- Populating Customer Table ---');
-
-    -- Ensure the sequence exists for CustomerCode (if you're using a sequence for it)
-    -- CREATE SEQUENCE customer_id_seq START WITH 1 INCREMENT BY 1 NOCACHE;
 
     FOR i IN 1..50 LOOP -- Populating 50 sample customers
         v_customer_code := 'CUST' || LPAD(customer_id_seq.NEXTVAL, 3, '0');
@@ -161,7 +153,7 @@ BEGIN
         );
     END LOOP;
 
-    COMMIT; -- Save all changes
+    COMMIT;
     DBMS_OUTPUT.PUT_LINE('Successfully populated 50 customers into the Customer table.');
 
 EXCEPTION
@@ -183,9 +175,6 @@ DECLARE
 BEGIN
     DBMS_OUTPUT.PUT_LINE('--- Populating TeamMember Table ---');
 
-    -- Ensure the sequence exists for TaxCode
-    -- CREATE SEQUENCE person_tax_code_seq START WITH 1 INCREMENT BY 1 NOCACHE;
-
     FOR i IN 1..100 LOOP -- Populating 100 sample team members
         v_tax_code := person_tax_code_seq.NEXTVAL;
 
@@ -199,7 +188,7 @@ BEGIN
         v_years_employed := ROUND(DBMS_RANDOM.VALUE(1, LEAST(v_age_years - 20, 30))); -- Max 30 years employed
         v_employment_date := ADD_MONTHS(TRUNC(SYSDATE), -(v_years_employed * 12 + ROUND(DBMS_RANDOM.VALUE(0, 11))));
 
-        -- Ensure employment date is not in the future (due to TRUNC(SYSDATE), it won't be, but good to be explicit)
+        -- Ensure employment date is not in the future
         IF v_employment_date > TRUNC(SYSDATE) THEN
             v_employment_date := TRUNC(SYSDATE) - DBMS_RANDOM.VALUE(0, 30); -- If somehow future, adjust to recent past
         END IF;
@@ -222,7 +211,7 @@ BEGIN
         );
     END LOOP;
 
-    COMMIT; -- Save all changes
+    COMMIT;
     DBMS_OUTPUT.PUT_LINE('Successfully populated 100 team members into the TeamMember table.');
 
 EXCEPTION
@@ -273,7 +262,7 @@ BEGIN
     END LOOP;
     CLOSE c_eligible_members;
 
-    COMMIT; -- Save all changes
+    COMMIT;
     DBMS_OUTPUT.PUT_LINE('Successfully populated ' || v_rows_processed || ' chief officers into the ChiefOfficier table.');
 
 EXCEPTION
@@ -296,7 +285,6 @@ DECLARE
     v_rows_processed    NUMBER := 0;
 
     -- Cursor to select available chief officers (not already assigned as chief to a team)
-    -- This is a simplification; in a real system, you might manage chief availability more complexly.
     CURSOR c_available_chiefs IS
         SELECT co.TaxCode
         FROM ChiefOfficier co
@@ -307,7 +295,6 @@ DECLARE
         ORDER BY DBMS_RANDOM.VALUE;
 
     -- Cursor to select available team members (not chief officers, not already in this team)
-    -- This picks general members, we'll try to ensure they are not chiefs.
     CURSOR c_available_members IS
         SELECT tm.TaxCode
         FROM TeamMember tm
@@ -315,9 +302,6 @@ DECLARE
         ORDER BY DBMS_RANDOM.VALUE;
 BEGIN
     DBMS_OUTPUT.PUT_LINE('--- Populating LogisticTeam Table ---');
-
-    -- Ensure the sequence exists
-    -- CREATE SEQUENCE logistic_team_id_seq START WITH 1 INCREMENT BY 1 NOCACHE;
 
     OPEN c_available_chiefs;
     FOR i IN 1..15 LOOP -- Attempt to create up to 15 teams
@@ -346,7 +330,7 @@ BEGIN
         END LOOP;
         CLOSE c_available_members;
 
-        -- If a team has no members (highly unlikely with this logic, but good to check)
+        -- If a team has no members
         IF v_team_members_list IS NULL OR v_team_members_list.COUNT = 0 THEN
             -- Skip this team or handle as an error
             DBMS_OUTPUT.PUT_LINE('Warning: Skipping Team ' || v_team_code || ' as no members could be assigned.');
@@ -365,7 +349,7 @@ BEGIN
     END LOOP;
     CLOSE c_available_chiefs;
 
-    COMMIT; -- Save all changes
+    COMMIT;
     DBMS_OUTPUT.PUT_LINE('Successfully populated ' || v_rows_processed || ' logistic teams into the LogisticTeam table.');
 
 EXCEPTION
@@ -380,16 +364,13 @@ END;
 
 DECLARE
     v_center_name       VARCHAR2(30);
-    v_location          Location; -- Type name as per your DDL
+    v_location          Location;
     v_logistic_team_ref REF LogisticTeam_t;
-    v_product_ref       REF Product_t; -- Type name as per your DDL
-    v_product_list      ProductList; -- Type name as per your DDL
+    v_product_ref       REF Product_t;
+    v_product_list      ProductList;
     v_team_code         LogisticTeam.TeamCode%TYPE;
 BEGIN
     DBMS_OUTPUT.PUT_LINE('--- Populating DistributionCenter Table ---');
-
-    -- Note: Your DDL uses CenterName as PRIMARY KEY, not a sequence-generated ID.
-    -- So we'll construct CenterName directly.
 
     FOR i IN 1..15 LOOP -- Populating 15 sample distribution centers
         v_center_name := 'DC_' || LPAD(i, 2, '0') || '_HQ';
@@ -438,7 +419,7 @@ BEGIN
         );
     END LOOP;
 
-    COMMIT; -- Save all changes
+    COMMIT;
     DBMS_OUTPUT.PUT_LINE('Successfully populated 15 distribution centers into the DistributionCenter table.');
 
 EXCEPTION
@@ -495,7 +476,7 @@ BEGIN
         );
     END LOOP;
 
-    COMMIT; -- Save all changes
+    COMMIT;
     DBMS_OUTPUT.PUT_LINE('Successfully populated 200 product batches into the ProductBatch table.');
 
 EXCEPTION
@@ -510,10 +491,10 @@ END;
 
 DECLARE
     v_order_id             NUMBER;
-    v_customer_ref         REF Customer_t;     -- Type name as per your DDL
-    v_logistic_team_ref    REF LogisticTeam_t; -- Type name as per your DDL
-    v_product_batch_ref    REF ProdBatch_t;    -- Type name as per your DDL
-    v_order_batches        BatchList;          -- Type name as per your DDL
+    v_customer_ref         REF Customer_t;     
+    v_logistic_team_ref    REF LogisticTeam_t; 
+    v_product_batch_ref    REF ProdBatch_t;    
+    v_order_batches        BatchList;          
     v_customer_code        Customer.CustomerCode%TYPE;
     v_team_code            LogisticTeam.TeamCode%TYPE;
     v_batch_id             ProductBatch.BatchID%TYPE;
@@ -522,9 +503,6 @@ DECLARE
     v_delivery_status      VARCHAR2(15);
 BEGIN
     DBMS_OUTPUT.PUT_LINE('--- Populating BatchOrder Table ---');
-
-    -- Ensure the sequence exists
-    -- CREATE SEQUENCE batch_order_id_seq START WITH 1 INCREMENT BY 1 NOCACHE;
 
     FOR i IN 1..1000 LOOP -- Populating 1000 sample batch orders
         v_order_id := batch_order_id_seq.NEXTVAL;
@@ -599,7 +577,7 @@ BEGIN
         );
     END LOOP;
 
-    COMMIT; -- Save all changes
+    COMMIT;
     DBMS_OUTPUT.PUT_LINE('Successfully populated 1000 batch orders into the BatchOrder table.');
 
 EXCEPTION
@@ -614,8 +592,8 @@ END;
 
 DECLARE
     v_ticket_id        NUMBER;
-    v_customer_ref     REF Customer_t;   -- Type name as per your DDL
-    v_batch_order_ref  REF BatchOrder_t; -- Type name as per your DDL
+    v_customer_ref     REF Customer_t;   
+    v_batch_order_ref  REF BatchOrder_t; 
     v_customer_code    Customer.CustomerCode%TYPE;
     v_order_id         BatchOrder.OrderID%TYPE;
     v_complaint_type   VARCHAR2(20);
@@ -623,9 +601,6 @@ DECLARE
     v_end_date         DATE;
 BEGIN
     DBMS_OUTPUT.PUT_LINE('--- Populating Complaint Table ---');
-
-    -- Ensure the sequence exists
-    -- CREATE SEQUENCE complaint_ticket_id_seq START WITH 1 INCREMENT BY 1 NOCACHE;
 
     FOR i IN 1..200 LOOP -- Populating 200 sample complaints
         v_ticket_id := complaint_ticket_id_seq.NEXTVAL;
@@ -693,7 +668,7 @@ BEGIN
         );
     END LOOP;
 
-    COMMIT; -- Save all changes
+    COMMIT;
     DBMS_OUTPUT.PUT_LINE('Successfully populated 200 complaints into the Complaint table.');
 
 EXCEPTION

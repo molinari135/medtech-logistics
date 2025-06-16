@@ -29,7 +29,7 @@ MedTech Logistics is a database system designed to manage logistics operations. 
 
 1. Install Python dependencies:
     ```bash
-    pip install -r requirements.txt
+    pip install -r webapp/requirements.txt
     ```
 2. Launch the Streamlit app:
     ```bash

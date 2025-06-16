@@ -17,7 +17,7 @@ services:
       bash -c "
         /opt/oracle/runOracle.sh &
 
-        sleep 10 
+        sleep 60 
 
         # Run each of your scripts in sequence
         sqlplus -S system/$$ORACLE_PWD@$$ORACLE_SID @/scripts/00_medtechdba.sql

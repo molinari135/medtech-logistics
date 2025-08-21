@@ -1,6 +1,12 @@
 # MedTech Logistics
 > Object-Relational Database implementation in Oracle 21c for Database Systems Exam @ Università degli Studi di Bari
 
+[![CC BY-NC 4.0][cc-by-nc-shield]][cc-by-nc]
+
+[cc-by-nc]: https://creativecommons.org/licenses/by-nc/4.0/
+[cc-by-nc-image]: https://licensebuttons.net/l/by-nc/4.0/88x31.png
+[cc-by-nc-shield]: https://img.shields.io/badge/License-CC%20BY--NC%204.0-lightgrey.svg
+
 ## Project Overview
 
 MedTech Logistics is a database system designed to manage logistics operations. The project utilizes **Oracle 21c** for object-relational database modeling and includes a demo web application built with **Streamlit** for interactive exploration.
@@ -288,3 +294,11 @@ The following screenshot shows the implementation of **Operation 5: List all bat
 ![Operation 5 - List All Batches of Expired Products](images/op5.png)
 
 > For more details, see the corresponding Streamlit page in `webapp/pages/` for each operation.
+
+## License
+
+This work is licensed under the [Creative Commons Attribution-NonCommercial 4.0 International License][cc-by-nc].
+
+For a copy of the license, please visit https://creativecommons.org/licenses/by-nc/4.0/
+
+[![CC BY-NC 4.0][cc-by-nc-image]][cc-by-nc]
